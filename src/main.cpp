@@ -1,9 +1,4 @@
 #include "../lib/defines.h"
-
-void setup() {
-
-}
-
-void main() {
-    
-}
+#include "../lib/types.h"
+#include "../lib/GPSController.h"
+#include "../lib/includes.h"
