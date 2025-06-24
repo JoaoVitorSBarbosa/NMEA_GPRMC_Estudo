@@ -5,25 +5,39 @@ GPSController::~GPSController() {}
 
 // Exemplo de Sentenca $GPRMC : $GPRMC,132454.00,A,1252.33842,S,04803.96357,W,0.252 ,,080625,,,A*77
 // $GPRMC,203522.00,A,5109.0262308,N,11401.8407342,W,0.004,133.4,130522,0.0,E,D*2B
-//   1          2   3       4       5       6       7   8    9     10   11 12 13 14          
+//   0          1   2       3       4       5       6   7    8     9   10 11 12 13          
 
+/*
+    @param const char* nmea_sentence = string (buffer) dados para a conversão 
+    @param gps_data_t* data = struct para armazenar as informações
+    @return um booleano. false indica que não é um cógido GPRMC válido ou o checksum está incorreto
+*/
 bool GPSController::parse_gprmc(const char* nmea_sentence, gps_data_t* data){
     uint8_t cont = 0; 
     uint8_t structureCount = 0;
-    char caractere = ' ';
+    uint8_t caractere = ' ';
     string structure = "";
-    while (caractere != '\000') {
-        caractere = nmea_sentence[cont];
-
-        if(caractere == ',') {
+    uint8_t checkSum = 0;
+    bool checkSumIgnore = false;
+    uint8_t receivedCheckSum = 0;
+    bool checkSumCalculated = false;
+    while (!checkSumCalculated) {
+        caractere = (uint8_t)nmea_sentence[cont];
+        if (caractere == '*')
+            checkSumIgnore = true;
+        
+        if ((caractere != '$') and (caractere != '*')) {
+            if(!checkSumIgnore)
+                checkSum ^= caractere;
+        }
+        
+        if(caractere == ',' or caractere == '*' or caractere == '\000') {
             switch (structureCount) {
             case 0: {//Log header
                 bool isGPRMC = structure == "$GPRMC";
                 if (!isGPRMC) return false;
                 break;
             }
-            // case 1: //UTC of position
-            //     break;
             case 2: { //Position status (A = data valid, V = data invalid)
                 data->is_valid = structure == "A";
                 break;
@@ -32,42 +46,31 @@ bool GPSController::parse_gprmc(const char* nmea_sentence, gps_data_t* data){
                 data->latitude = stof(structure);
                 break;
             }
-            // case 4: //Latitude direction: (N = North, S = South)
-            //     break;
             case 5: {//Longitude (DDDmm.mm)
                 data->longitude = stof(structure);
                 break;
             }
-            // case 6://Longitude direction: (E = East, W = West)
-            //     break;
             case 7: {//Speed over ground, knots
                 float speedInKnots = stof(structure);
                 data->speed = ISO_VALUES ? speedInKnots / 1.94384449 : speedInKnots;
                 break;
             }
-            // case 8://Track made good, degrees True
-            //     break;
-            // case 9://Date: dd/mm/yy
-            //     break;
-            // case 10://Magnetic variation, degrees (Always positive)
-            //     break;
-            // case 11:// Magnetic variation direction E/W Easterly variation (E) subtracts from True course.
-            //     break;
-            // case 12://Positioning system mode indicator,
-            //     break;
-            // case 13://Check sum
-            //     break;
-            // case 14://Sentence terminator
-            //     break;
-            // default:
-            //     break;
+            case 13: { //CheckSum
+                if(caractere == '\000') {
+                    receivedCheckSum = std::stoi(structure, nullptr, 16);
+                    checkSumCalculated = true;
+                }
+            }
+                break;
             }
             structureCount++;
             structure = "";
         } else {
-            structure += caractere;
+            if(caractere != '\000')
+                structure += caractere;
         }
         cont++;
     }
-    return true;
+
+    return receivedCheckSum == checkSum;
 }
