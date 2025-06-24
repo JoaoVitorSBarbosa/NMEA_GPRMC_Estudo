@@ -1,4 +1,8 @@
-typedef struct gps_data_t{ 
+#ifndef TYPES_H
+#define TYPES_H
+
+#include "includes.h"
+struct gps_data_t{ 
     float latitude; 
     float longitude; 
     float speed; 
@@ -18,15 +22,23 @@ typedef struct gps_data_t{
     }
     
     // imprimir formatado
-    String toString() const {
-        return "Latitude: " +
-        (String)latitude + "\n"
-        "longitude: " +
-        (String)longitude + "\n"
-        "Velocidade: " +
-        (String)speed + "\n"
-        "Validade: " +
-        (is_valid ? "VALIDO" : "INVALIDO") + "\n";
-
+    const char* toString() const {
+        std::string temp;
+        temp = "Latitude: "; 
+        temp += latitude; 
+        temp += "\n";
+        temp += "longitude: ";
+        temp += longitude;
+        temp += "\n";
+        temp += "Velocidade: ";
+        temp += speed;
+        temp += "\n";
+        temp += "Validade: ";
+        temp += (is_valid ? "VALIDO" : "INVALIDO");
+        temp += "\n";
+        return temp.c_str();
     }
 };
+
+
+#endif
