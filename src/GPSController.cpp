@@ -23,10 +23,10 @@ bool GPSController::parse_gprmc(const char* nmea_sentence, gps_data_t* data){
     bool checkSumCalculated = false;
     while (!checkSumCalculated) {
         caractere = (uint8_t)nmea_sentence[cont];
-        if (caractere == '*')
+        if (caractere == '*') //Evita que o cheacksum recebido entre na contagem
             checkSumIgnore = true;
         
-        if ((caractere != '$') and (caractere != '*')) {
+        if ((caractere != '$') and (caractere != '*')) { 
             if(!checkSumIgnore)
                 checkSum ^= caractere;
         }
@@ -39,7 +39,7 @@ bool GPSController::parse_gprmc(const char* nmea_sentence, gps_data_t* data){
                 break;
             }
             case 2: { //Position status (A = data valid, V = data invalid)
-                data->is_valid = structure == "A";
+                data->is_valid = structure != "V";
                 break;
             }
             case 3: {//Latitude (DDmm.mm)
@@ -71,6 +71,10 @@ bool GPSController::parse_gprmc(const char* nmea_sentence, gps_data_t* data){
         }
         cont++;
     }
-
-    return receivedCheckSum == checkSum;
+    if (receivedCheckSum != checkSum) {
+        data->is_valid = false;
+        return false;
+    }
+    
+    return true;
 }
